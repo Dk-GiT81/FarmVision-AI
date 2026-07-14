@@ -202,42 +202,6 @@ npm start
 
 ---
 
-# 📸 Screenshots
-
-> Add screenshots here after uploading them.
-
-### Home Page
-
-```
-screenshots/home.png
-```
-
-### Login
-
-```
-screenshots/login.png
-```
-
-### Dashboard
-
-```
-screenshots/dashboard.png
-```
-
-### Disease Prediction
-
-```
-screenshots/prediction.png
-```
-
-### Analytics
-
-```
-screenshots/analytics.png
-```
-
----
-
 ## 📊 Key Functionalities
 
 ✅ User Registration
