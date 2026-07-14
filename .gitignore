@@ -1,0 +1,29 @@
+# React
+frontend/node_modules/
+frontend/build/
+
+# Python
+backend/__pycache__/
+*.pyc
+*.pyo
+
+# Virtual Environment
+backend/venv/
+backend/env/
+backend/.venv/
+
+# VS Code
+.vscode/
+
+# Environment Variables
+.env
+
+# Logs
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Ignore TensorFlow model (185 MB)
+backend/model/
