@@ -129,15 +129,18 @@ def predict():
         "precaution": rec["precaution"]
     })
 
+RESERVED_ADMIN_EMAIL = "admin@farmvision.com"
+
 # =======================
 # HISTORY API
 # =======================
 @app.route("/history", methods=["GET"])
 def history():
-    email = request.args.get("email")
+    email = (request.args.get("email") or "").strip().lower()
     role = request.args.get("role")
 
-    if role == "admin":
+    # Only the verified reserved admin account can view all users' predictions
+    if role == "admin" and email == RESERVED_ADMIN_EMAIL:
         data = list(collection.find({}, {"_id": 0}))
     else:
         data = list(collection.find({"user_email": email}, {"_id": 0}))
@@ -153,22 +156,29 @@ def clear_history():
 
 @app.route("/register", methods=["POST"])
 def register():
-    data = request.json
+    data = request.json or {}
 
     name = data.get("name")
-    email = data.get("email")
+    email = (data.get("email") or "").strip().lower()
     password = data.get("password")
-    role = data.get("role", "farmer")  # default farmer
 
-    # check if user exists
-    if users_collection.find_one({"email": email}):
+    if not name or not email or not password:
+        return jsonify({"error": "Please fill in all required fields."}), 400
+
+    # Public registration can never use the reserved admin identity
+    if email == RESERVED_ADMIN_EMAIL:
+        return jsonify({"error": "This email address is reserved."}), 400
+
+    # Check if user already exists (case-insensitive)
+    if users_collection.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}}):
         return jsonify({"error": "User already exists"}), 400
 
+    # Security rule: Public registration ALWAYS creates role 'farmer'. Any client-supplied role is discarded.
     users_collection.insert_one({
-        "name": name,
+        "name": name.strip(),
         "email": email,
         "password": password,
-        "role": role
+        "role": "farmer"
     })
 
     return jsonify({"message": "User registered successfully"})
@@ -176,25 +186,33 @@ def register():
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.json or {}
 
-    email = data.get("email")
+    email = (data.get("email") or "").strip().lower()
     password = data.get("password")
 
-    user = users_collection.find_one({"email": email})
+    if not email or not password:
+        return jsonify({"error": "Please enter both email and password."}), 400
+
+    user = users_collection.find_one({"email": {"$regex": f"^{email}$", "$options": "i"}})
 
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    if user["password"] != password:
+    if user.get("password") != password:
         return jsonify({"error": "Invalid password"}), 401
+
+    # Authoritative backend role assignment:
+    # Only the verified reserved admin account can ever receive the 'admin' role.
+    is_admin = (email == RESERVED_ADMIN_EMAIL and user.get("role") == "admin")
+    role = "admin" if is_admin else "farmer"
 
     return jsonify({
         "message": "Login successful",
         "user": {
             "name": user["name"],
             "email": user["email"],
-            "role": user["role"]
+            "role": role
         }
     })
 
